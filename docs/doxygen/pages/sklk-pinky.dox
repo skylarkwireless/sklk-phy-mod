@@ -1,0 +1,84 @@
+/*!
+ *
+ * @page sklk-pinky Direct CPE Control
+ *
+ * **NOTE**: This functional will be deprecated.  CPEs should automatically connect to the base station
+ * and only controlled through the base station.  But, that functionality is currently not ready.
+ *
+ * @section Overview
+ *
+ * @subsection Installing
+ *
+ *     sudo snap install --devmode ./sklk-pinky*.snap
+ *     sudo snap set sklk-pinky router-enabled=1
+ *
+ * @subsection running Running the CLI
+ *
+ *     $ sklk-pinky.cli
+ *
+ * @subsection commands Useful Commands
+ *
+ * List available devices
+ *
+ *     $ list_devices
+ *     name                     serial      url                                              addr                               key_state
+ *     -----------------------  ----------  -----------------------------------------------  ---------------------------------  -----------
+ *     SkylarkFalco-FL1A000014  FL1A000014  tcp://[fe80::3a3a:21ff:fe90:687%vlan.219]:49123  fe80::3a3a:21ff:fe90:687%vlan.219  DEFAULT
+ *     SkylarkFalco-FL1A000008  FL1A000008  tcp://[fe80::3a3a:21ff:fe90:78b%vlan.214]:49123  fe80::3a3a:21ff:fe90:78b%vlan.214  DEFAULT
+ *     SkylarkFalco-FL1A000009  FL1A000009  tcp://[fe80::3a3a:21ff:fe90:7d3%vlan.217]:49123  fe80::3a3a:21ff:fe90:7d3%vlan.217  DEFAULT
+ *
+ * Discover new devices
+ *
+ *     $ discover
+ *     name                     addr                               serial
+ *     -----------------------  ---------------------------------  ----------
+ *     SkylarkFalco-FL1A000012  fe80::3a3a:21ff:fe90:7b4%vlan.220  FL1A000012
+ *
+ * To start the CPE, use the configure command.  It requires a serial number of one ore CPEs and a filename
+ *
+ *     $ configure --file /etc/sklk/config_dir/FL1A000014.yaml FL1A000014
+ *     serial      enabled
+ *     ----------  ---------
+ *     FL1A000014  True
+ *
+ * Alternatively, when configuring one or more CPEs, a directory name can be specified.  In this case, the
+ * CLI will search for a file in that directory called <serial>.yaml.
+ *
+ *     $ configure --file /etc/sklk/config_dir FL1A000014 FL1A000008
+ *     serial      enabled
+ *     ----------  ---------
+ *     FL1A000014  True
+ *     FL1A000008  True
+ *
+ * Setting the VLAN.
+ *
+ *     $ set_vlan FL1A000014 -v 100
+ *     serial
+ *     ----------
+ *     FL1A000014
+ *
+ * @subsection Villager Configuration File
+ *
+ *     radio:
+ *       rx_dc_filter: true
+ *       samp_rate: 7680000
+ *       frequency: 560000000
+ *       filter_bw: 6000000
+ *       tx_gains:
+ *         ATTN: -18
+ *         PAD: 34
+ *       rx_gains:
+ *         LNA1: 30
+ *         LNA2: 30
+ *         ATTN1: -18
+ *         ATTN2: -12
+ *         PGA: -12
+ *         TIA: 0
+ *         LNA: 0
+ *     phy:
+ *       fft_size: 512
+ *       extended_cp: false
+ *       rx_gain_control: false
+ *       max_bands: 10
+
+ */

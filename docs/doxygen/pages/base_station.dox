@@ -1,0 +1,258 @@
+/*!
+ *
+ * @page base_station Base Station Management
+ *
+ * @section Overview
+ *
+ * The Skylark Wireless Faros Platform is managed by a collection of software services.  These are services running
+ * on the CU server.
+ *
+ *    - mu2sys_rpc
+ *    - gyro_phy
+ *    - mu2control-server
+ *
+ * All of these services use a JSON RPC over ZMQ to communicate.  However, to make this protocol easier to use, there
+ * are other methods that wrap this protocol: CLI, custom tools, and a Python API.
+ *
+ * @subsection CLI
+ *
+ * Mu2control-service can be accessed directly through a CLI. Run the following command from the CU:
+ *
+ *     $ mu2control-cli --host localhost
+ *
+ * To view commands available from the CLI, type 'help' at the prompt.  Any commands list under "RPC METHODS FROM ..."
+ * are internal commands and do not have documented help information.  These commands are subject
+ * to change and should be used if they are directly referenced in this document.
+ *
+ * Also, the CLI can be used to run just single command.
+ *
+ *     $ mu2control-cli --host localhost hw_versions
+ *     name            id  board.model       board.revision    board.serial    cpld_git_hash    cpld_version    fpga_git_hash    fpga_version       fw_git_hash  fw_version      hw_id    hw_rev
+ *     -----------  -----  ----------------  ----------------  --------------  ---------------  --------------  ---------------  ---------------  -------------  ------------  -------  --------
+ *     GYRO         40960  SW-PCBA-GYRO-MU2  aa                GY1A00aaaa      f1df2cb-dirty    N/A             8942acb          2020/08 Rev:0.0              0  N/A                15        14
+ *     ROSA[3]      45059  SW-PCBA-ROSA-MU2  ba                RS1B000018      f0d856           N/A             8942acb          2020/08 Rev:0.0              0  N/A                 0         1
+ *     ROSA[3:2]    45091  SW-PCBA-ROSA-MU2  ba                RS1B000006      f0d856           N/A             8942acb          2020/08 Rev:0.0              0  N/A                 0         1
+ *     LUMA[3:1]    49171  SW-PCBA-LUMA-DEV  ba                RF4B000017      335e8d4          N/A             8942acb          2020/08 Rev:0.0              0  N/A                 1         2
+ *     LUMA[3:2:1]  49443  SW-PCBA-LUMA-DEV  ba                RF4B000028      335e8d4          N/A             8942acb          2020/08 Rev:0.0              0  N/A                 1         2
+ *     LUMA[3:2:2]  49699  SW-PCBA-LUMA-DEV  ba                RF4B000022      335e8d4          N/A             8942acb          2020/08 Rev:0.0              0  N/A                 1         2
+ *     LUMA[3:2:3]  49955  SW-PCBA-LUMA-DEV  ba                RF4B000009      335e8d4          N/A             8942acb          2020/08 Rev:0.0              0  N/A                 1         2
+ *     LUMA[3:2:4]  50211  SW-PCBA-LUMA-DEV  ba                RF4B000004      335e8d4          N/A             8942acb          2020/08 Rev:0.0              0  N/A                 1         2
+ *     LUMA[3:2:5]  50467  SW-PCBA-LUMA-DEV  ba                RF4B000015      335e8d4          N/A             8942acb          2020/08 Rev:0.0              0  N/A                 1         2
+ *     LUMA[3:2:6]  50723  SW-PCBA-LUMA-DEV  ba                RF4B000029      335e8d4          N/A             8942acb          2020/08 Rev:0.0              0  N/A                 1         2
+ *     LUMA[3:2:7]  50979  SW-PCBA-LUMA-DEV  ba                RF4B000011      335e8d4          N/A             8942acb          2020/08 Rev:0.0              0  N/A                 1         2
+ *
+ *     $
+ *
+ * @subsection custom_tools Custom Tools
+ *
+ * There are some tools provided that can be used to interactive with one or more services.  Currently,
+ * the most import of these is mu2sys_updater.  All others are currently for internal use.
+ *
+ * @subsection python_api Python API
+ *
+ * Although the CLI can be run in a non-interactive way, it is not recommended for scripting. First, the
+ * return value of the CLI has no meaningful information.  In all cases of the following commands, the return
+ * value of the CLI is 0.
+ *
+ * Example of the exit code when a CLI returns a false value:
+ *
+ *     kscianna@nibbler-09:~/projects/sklk-pacman$ mu2control-cli gyro_get_phy_enabled
+ *     False
+ *     kscianna@nibbler-09:~/projects/sklk-pacman$ echo $?
+ *     0
+ *
+ * Example of the exit code when a CLI returns a true value:
+ *
+ *     kscianna@nibbler-09:~/projects/sklk-pacman$ mu2control-cli gyro_get_phy_enabled
+ *     True
+ *     kscianna@nibbler-09:~/projects/sklk-pacman$ echo $?
+ *     0
+ *
+ * Example of the exit code when a CLI an invalid command is executed.
+ *
+ *     kscianna@nibbler-09:~/projects/sklk-pacman$ mu2control-cli bad_command
+ *     bad_command is not a recognized command, alias, or macro
+ *     kscianna@nibbler-09:~/projects/sklk-pacman$ echo $?
+ *     0
+ *
+ * Another problem is that even if the output is captured, it becomes difficult to parse.  Some CLIs return
+ * formatted list and other CLIs return JSON structures. So, there is no convenient method of parsing.
+ *
+ * To script any commands to control the system, it is recommended that you use the python API available
+ * from the sklk_sonic module.
+ *
+ * Example of opening the client API connection:
+ *
+ *     $ python3
+ *     Python 3.8.10 (default, Mar 15 2022, 12:22:08)
+ *     [GCC 9.4.0] on linux
+ *     Type "help", "copyright", "credits" or "license" for more information.
+ *     >>> from sklk_sonic.client import JSONZClient
+ *     >>> client = JSONZClient("Mu2 Control", host="localhost")
+ *
+ * Example of the return value when the API returns a false value:
+ *
+ *     >>> client.gyro_get_phy_enabled()
+ *     False
+ *
+ * Example of the return value when the API returns a true value:
+ *
+ *     >>> res = client.gyro_get_phy_enabled()
+ *     >>> type(res)
+ *     <class 'bool'>
+ *     >>> res
+ *     True
+ *     >>>
+ *
+ * Example of an error being raised when an invalid command is executed.
+ *
+ *     >>> client.bad_command()
+ *     Traceback (most recent call last):
+ *       File "<stdin>", line 1, in <module>
+ *       File "/home/kscianna/projects/sklk-pacman/sklk_sonic/src/sklk_sonic/client.py", line 479, in __getattr__
+ *         raise KeyError("Unknown RPC method '{0}'".format(name))
+ *     KeyError: "Unknown RPC method 'bad_command'"
+ *
+ * Example of an output that is a list of dictionaries of etc...
+ *
+ *     >>> res = client.mu2_get_devices()
+ *     >>> type(res)
+ *     <class 'list'>
+ *     >>> type(res[0])
+ *     <class 'dict'>
+ *     >>> [device["version"]["board"]["serial"] for device in res]
+ *     ['GY1A000007', 'RS1B000022', 'RS1B000005', 'RS1B000005', 'RF4B000056', 'RF4B000040', 'RF4B000103',
+ *     'RF4B000041', 'RF4B000107', 'RF4B000043', 'RF4B000106', 'RF4B000044', 'RF4B000105', 'RF4B000045',
+ *     'RF4B000104', 'RF4B000046', 'RF4B000102', 'RF4B000065', 'RF4B000101']
+ *
+ * As you can see, there is no need with this API to implement parsing because everything is already in native
+ * Python types. Currently, the API is not formalized.  You can use the help from the CLI to see which commands
+ * are available.  Any command under the "RPC METHODS" or "RPC METHODS FROM ..." sections is available as an API call.  However,
+ * since there is no formal API documentation, it is recommend that you only use the commands referenced in this
+ * manual.
+ *
+ * @section versions Listing version
+ *
+ * @subsection list_devices Listing devices
+ *
+ * You can get a list of all devices in the system as well as there current version information through the CLI:
+ *
+ *      (Mu2 Control - localhost) > hw_versions
+ *      name            id  board.model       board.revision    board.serial    cpld_git_hash    cpld_version    fpga_git_hash    fpga_version       fw_git_hash  fw_version      hw_id    hw_rev
+ *      -----------  -----  ----------------  ----------------  --------------  ---------------  --------------  ---------------  ---------------  -------------  ------------  -------  --------
+ *      GYRO         40960  SW-PCBA-GYRO-MU2  aa                GY1A00aaaa      f1df2cb-dirty    N/A             8942acb          2020/08 Rev:0.0              0  N/A                15        14
+ *      ROSA[3]      45059  SW-PCBA-ROSA-MU2  ba                RS1B000018      f0d856           N/A             8942acb          2020/08 Rev:0.0              0  N/A                 0         1
+ *      ROSA[3:2]    45091  SW-PCBA-ROSA-MU2  ba                RS1B000006      f0d856           N/A             8942acb          2020/08 Rev:0.0              0  N/A                 0         1
+ *      LUMA[3:1]    49171  SW-PCBA-LUMA-DEV  ba                RF4B000017      335e8d4          N/A             8942acb          2020/08 Rev:0.0              0  N/A                 1         2
+ *      LUMA[3:2:1]  49443  SW-PCBA-LUMA-DEV  ba                RF4B000028      335e8d4          N/A             8942acb          2020/08 Rev:0.0              0  N/A                 1         2
+ *      LUMA[3:2:2]  49699  SW-PCBA-LUMA-DEV  ba                RF4B000022      335e8d4          N/A             8942acb          2020/08 Rev:0.0              0  N/A                 1         2
+ *      LUMA[3:2:3]  49955  SW-PCBA-LUMA-DEV  ba                RF4B000009      335e8d4          N/A             8942acb          2020/08 Rev:0.0              0  N/A                 1         2
+ *      LUMA[3:2:4]  50211  SW-PCBA-LUMA-DEV  ba                RF4B000004      335e8d4          N/A             8942acb          2020/08 Rev:0.0              0  N/A                 1         2
+ *      LUMA[3:2:5]  50467  SW-PCBA-LUMA-DEV  ba                RF4B000015      335e8d4          N/A             8942acb          2020/08 Rev:0.0              0  N/A                 1         2
+ *      LUMA[3:2:6]  50723  SW-PCBA-LUMA-DEV  ba                RF4B000029      335e8d4          N/A             8942acb          2020/08 Rev:0.0              0  N/A                 1         2
+ *      LUMA[3:2:7]  50979  SW-PCBA-LUMA-DEV  ba                RF4B000011      335e8d4          N/A             8942acb          2020/08 Rev:0.0              0  N/A                 1         2
+ *
+ * This command is not available from the Python API, but mu2_get_devices() will return the same information.
+ *
+ *     >>> import pprint
+ *     >>> pprint.pprint(dict((device["version"]["board"]["serial"], device["version"]["fpga_git_hash"])
+ *            for device in client.mu2_get_devices()))
+ *     {'GY1A00aaaa': '8942acb',
+ *      'RF4B000004': '8942acb',
+ *      'RF4B000009': '8942acb',
+ *      'RF4B000011': '8942acb',
+ *      'RF4B000015': '8942acb',
+ *      'RF4B000017': '8942acb',
+ *      'RF4B000022': '8942acb',
+ *      'RF4B000028': '8942acb',
+ *      'RF4B000029': '8942acb',
+ *      'RS1B000006': '8942acb',
+ *      'RS1B000018': '8942acb'}
+ *
+ * You can also use mu2sys_updater to list of the devices:
+ *
+ *      sklk@nikolai:~$ mu2sys_updater
+ *      Found devices:
+ *          GYRO
+ *          ROSA[3]
+ *          ROSA[3:2]
+ *          LUMA[3:1]
+ *          LUMA[3:2:1]
+ *          LUMA[3:2:2]
+ *          LUMA[3:2:3]
+ *          LUMA[3:2:4]
+ *          LUMA[3:2:5]
+ *          LUMA[3:2:6]
+ *          LUMA[3:2:7]
+ *      Exit updater
+ *
+ * @section upgrading
+ *
+ * @subsection upgrading_devices Upgrading Devices
+ *
+ * Currently, upgrading devices is only available through a custom tool, mu2sys_updater.  The common method to
+ * update the hardware is provide the full path to the firmware.tar.gz file. The --reboot option is specified to
+ * reboot all of the hardware after the patch is successfully completed.
+ *
+ *      mu2sys_updater --file <path-to-file> --reboot all
+ *
+ * @subsection upgrading_software
+ *
+ * After downloading the software to the CU, the packages need to be installed.
+ *
+ *      sudo apt install --upgrade -y  -f ./sklk_mii.deb ./sklk_json.deb ./sklk_phy.deb ./sklk_mu2.deb ./sklk_gyro_phy.deb
+ *      sudo pip3 install --upgrade ./sklk_sonic-*.whl ./sklk_bowser-*.whl ./mu2control-*.whl
+ *
+ * Then restart all of the services.
+ *
+ *      sudo systemctl daemon-reload
+ *      sudo systemctl restart mu2sys_rpc
+ *      sudo systemctl restart gyro_phy
+ *      sudo systemctl restart mu2control
+ *
+ * @section fixed_wireless_application The Fixed Wireless Application
+ *
+ * @subsection Configure
+ *
+ * There are three basic CLIs for configuring the system
+ *
+ *    - config
+ *    - config_hw
+ *    - config_phy
+ *
+ * The most basic command, config, will configure all of the hardware and the start the wireless application.
+ * The config_hw command will just enable all of the hardware.  And the config_phy command will be used to
+ * configure just the application itself.
+ *
+ *  Check to see if the application is running.  If the application is started but not active,
+ *
+ *      (Mu2 Control - localhost) > gyro_get_phy_enabled
+ *      False
+ *
+ * To start the application, run `config`:
+ *
+ *      (Mu2 Control - localhost) > config
+ *      {
+ *      ...
+ *      }
+ *
+ * Then you can check that the application is now enabled.
+ *
+ *      (Mu2 Control - localhost) > gyro_get_phy_enabled
+ *      True
+ *
+ * If changes were made the phy_config, the application can be restarted without restarting the hardware.
+ * First, restart the server from bash:
+ *
+ *      sudo systemctl restart gyro_phy
+ *
+ * Then configure just the application:
+ *
+ *      (Mu2 Control - localhost) > config_phy
+ *      {
+ *      ...
+ *      }
+ *
+ * You can check output of config_phy to make sure that your changes were applied.
+ *
+ */

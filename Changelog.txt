@@ -1,0 +1,6 @@
+This is the changelog file for sklk-phy-mod
+
+Release 2022.12.0.1 (2022-12-12)
+==========================
+
+- Initial versioning of the SkyPhy Modding API and library

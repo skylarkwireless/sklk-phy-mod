@@ -1,0 +1,192 @@
+/*! @mainpage Skylark Wireless Modding API
+ *
+ * @tableofcontents
+ *
+ * @section intro_sec Introduction
+ *
+ * Welcome to Skylark Wireless Modding. This API is a library designed to allow custom
+ * group selection, beam-forming weights, and scheduling of the Skylark Wireless Fixed Wireless Application.
+ * The application performs the following task:
+ *  - Initialize the base station hardware
+ *  - Gather CSI used to estimate downlink CSI.
+ *  - Connect new client devices.
+ *  - Request and gather CSI from the client devices.
+ *  - Create beam-forming weights.
+ *  - Schedule clients to receive or transmit data using weights for an exact combination of clients.
+ *  - Transmit the future schedule to the clients.
+ *  - Dynamically determine SNR and use that SNR to pick modulation and encoding schemes
+ *  - Read and write data network traffic from the network device
+ *  - Encode and decode client data
+ *
+ * When using the modding API, most of this work will be abstracted and not available for modification.  The
+ * code that is available for modification centers around the following items:
+ *  - Determining which clients should be grouped together.
+ *  - Creating beam-forming weights for a given group based on the collected CSI.
+ *  - Scheduling when a given group should be used.
+ *
+ * The sklk-phy-mod project includes a reference designed in the src directory.  The instructions in this
+ * chapter include several references to that code.  If you want get started with the reference designed,
+ * skip to the @ref running_ref_design_sec section.
+
+ @section writing_mod_sec Writing a mod library
+
+ * The Skylark Wireless Fixed Wireless Application is a precompiled binary that will be provided. The application
+ * does have an option for loading a dynamic library to modify the specific behavior. To do this, you will overload
+ * the following classes.
+ *  - sklk_phy_mod_loader
+ *  - sklk_phy_mod_loader_factory
+ *
+ * In addition, you will need to create one or more modules using the following classes as base classes:
+ *  - sklk_phy_modding
+ *  - sklk_phy_mod_container
+ *
+ *  Finally, you will configure the application to use your modding library by calling the following method
+ *  during library initialization.
+ *  - sklk_phy_mod_loader_factory::set_factory
+ *
+ @section module_sec Modules
+
+ Modules introduce modifications into the Skylark Wireless Fixed Wireless Application. Modules are created by
+ inheriting the sklk_phy_modding base class. The bulk of the functionality of a module is implemented in
+ the sklk_phy_modding::run_once method, which is run once every frame.
+
+ @subsection module_message_sec Message queues
+
+ Modules are sent information via various message queues. In a loader, these message queues are contained in the
+ structure sklk_phy_mod_loader::message_queues and can be accessed via the sklk_phy_mod_loader::_msg_queues field.
+ In modules, these message queues are contained in the structure sklk_phy_modding::message_queues and can be
+ accessed via the sklk_phy_modding::_msg_queues field.
+
+ sklk_phy_mod_loader::message_queues has a one-to-one relationship with sklk_phy_modding::message_queues.
+ Fields with the same name in both these classes represent a single message queue.
+
+ @subsubsection module_message_subsc_sec Subscribing to a message queue
+
+ In order for modules to be receive messages from a message queue, they must be subscribed to it. This is done in
+ the sklk_phy_mod_loader subclass constructor by using the sklk_phy_mod_loader::message_queue::subscribe method:
+
+ @snippet loader.cpp Subscribing to message queues
+
+ @subsubsection module_message_proc_sec Processing messages
+
+ Modules are able to process messages from a message queue by accessing the appropriate sklk_mii_message_queue
+ in their implementation of the sklk_phy_modding::run_once method:
+
+ @snippet csi_mod.cpp CSI module requesting CSI update
+
+ @snippet schedule_mod.cpp get schedule request
+
+ @section loader_sec The loader
+
+ A loader (a subclass of sklk_phy_mod_loader) is responsible for (among other things):
+ - creating modules,
+ - adding RPC commands, and
+ - orchestrating communication:
+   - between the modules themselves, and
+   - between the modules and the Skylark Wireless Fixed Wireless Application.
+ *
+ * @subsection loader_subsec Creating modules
+ *
+ * Once the shared library is loaded, the application will use the factory to create a loader.
+ * In its constructor, the loader will create all of the desired modules, subscribe them to the
+ required message queues, and register them using sklk_phy_mod_loader::add_module.
+ *
+ *
+ * @snippet loader.cpp The loader creating the modules
+ *
+ * After the loader adds all of the modules, the application will start a thread for each module. Every module should
+ * be added during the constructor of the loader because no threads will be created for any module added later.
+ *
+
+ * @section factory_sec The factory
+ *
+ * @subsection factory_create_subsec Instantiating the loader
+ *
+ * The entrypoint to modifying the Skylark Wireless Fixed Wireless Application is through a factory
+ (a subclass of sklk_phy_mod_loader_factory). The factory has one purpose:  to instantiate the loader.
+ *
+ * @snippet loader.cpp Factory creating the loader
+ *
+ * @subsection factory_install_subsec Installing the factory
+ *
+ * However, in order for the factory to be used, the factory must installed.  To, do this create a static variable
+ * and set it to the output of sklk_phy_mod_loader_factory::set_factory.
+ *
+ * @snippet loader.cpp Factory installed on module load
+
+ * @section csi_sec Handling CSI
+ *
+ * @subsection storing_csi_subsection Storing CSI
+ *
+ * Before creating beam-forming weights, the mod package must first store the CSI. The reference design includes a "csi" module
+ * to do this. Since these weights need to be associated with the UE radio, the modding library has a feature to
+ * create a new container for each device of a given type. This can be done for a sklk_phy_ue, sklk_phy_ue_radio, and/or a sklk_phy_ue_stream. The
+ * following code will create a container for the UE radio.
+ *
+ * @snippet csi_mod.cpp CSI module creating a container
+ *
+
+ In order to receive CSI messages, this module must be subscribed to the sklk_phy_mod_loader::message_queues::csi
+ queue in the loader.
+
+ @snippet loader.cpp Subscribing to the csi queue
+
+ * Now that you have a container for CSI, you can process the CSI messages sent to this module via
+ the sklk_phy_modding::message_queues::csi queue.
+ *
+ * @snippet csi_mod.cpp CSI module requesting CSI update
+
+ CSI can then be stored based on the messages received.
+
+ * @snippet csi_mod.cpp CSI module receiving CSI update
+ *
+ * @subsection weight_subsec Pass weight pages between modules
+ *
+ * Now that you have CSI, you can group different sklk_phy_ue_stream(s) together and create weights for that group.
+ * This is one of the primary purposes of this library.  A reference design for doing both of these is in
+ * ref_design_csi_mod::_calculate_weights.  But, the important part to discuss here is the call to
+ * ref_design_mod_loader::send_weight_page.  This is internal to the reference design because you are passing the
+ * weights between modules.  The following code will use a message queue to move weights from one thread to another.
+ *
+ * @snippet loader.hpp weight page queue
+ * @snippet loader.cpp Send the weights between modules
+ *
+ * @subsection scheduling_subsec Scheduling
+ *
+ * After the CSI module sends the weights, the scheduling algorithm must store them.  An opaque container is not
+ * required here because the weights pages are not associated with an individual device.  Instead, you will just
+ * store the last weight page received for each resource block in an array.
+ *
+ * @snippet loader.hpp receiving the weight
+ * @snippet schedule_mod.cpp get the weight page
+ *
+ * Finally, you must listen for request for a new schedule.  This operation should be as quick as possible, since
+ * this is the most time sensitive part of modding. A new frame is scheduled every 10 milliseconds.
+ * In this example, you read the schedule request and
+ * immediately replay with the last weight page you have for that resource block.
+ *
+ * @snippet schedule_mod.cpp get schedule request
+ * @snippet schedule_mod.cpp respond to schedule request
+ *
+ * @section running_ref_design_sec Running the Reference Design
+ *
+ * @subsection compiling_subsec Compiling
+ *
+ * The reference design already includes a working example including a makefile.  To compile this code, type
+ * the following commands for the base directory of the sklk-phy-mod project
+ *
+ *     cmake -B build -S src/ && make -C build/ -j
+ *
+ * This will generate a dynamic library in the build directory: build/ref_design/libsklkphy_mod_ref_design.so
+ *
+ * @section base_components_sec Dynamically Loaded Hooks
+ *
+ * To use the a specific mod library, the base station configuration file must be changed. In /root/hw_config.yaml
+ *
+ *     phy_config:
+ *         ...
+ *         mod_library: <path>/libsklkphy_mod_ref_design.so
+ *
+ * After this restart the base application and the library should be loaded.
+ *
+ */

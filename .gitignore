@@ -1,0 +1,9 @@
+.idea
+*.ipr
+*.iws
+*.iml
+.gradle
+build
+cmake-build-*
+docs/doxygen/html
+docs/doxygen/latex
