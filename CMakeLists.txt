@@ -15,6 +15,7 @@ string(REPLACE "-DNDEBUG" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_R
 ########################################################################
 find_package(SklkMii CONFIG REQUIRED)
 find_package(SklkJSON CONFIG REQUIRED)
+find_package(SklkDSP CONFIG REQUIRED)
 
 if (DEFINED SklkPhy_SRC)
     message(STATUS "Using SklkPhy source in ${SklkPhy_SRC}")
@@ -31,6 +32,11 @@ include(SklkCommon)
 sklk_init_repo()
 
 #########################################################################
+# Find other dependencies
+#########################################################################
+find_package(Armadillo REQUIRED)
+
+#########################################################################
 # Generate this repo's version strings
 #########################################################################
 set(SKLK_PHY_MOD_ABI_SUFFIX 0) # Automatically changed by CI
@@ -39,20 +45,6 @@ set(GIT_MAIN_BRANCH_NAME "main")
 
 include(SklkGenerateVersions)
 sklk_cmake_generate_versions(SKLK_PHY_MOD_VERSION SKLK_PHY_MOD_LIBVER SKLK_PHY_MOD_EXTVER SKLK_PHY_MOD_ABI_SUFFIX SKLK_PHY_MOD_ABI_VERSION)
-
-#########################################################################
-# Packaging
-#########################################################################
-SET(CPACK_GENERATOR "DEB")
-SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "support@skylarkwireless.com")
-SET(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
-SET(CPACK_DEBIAN_PACKAGE_NAME "sklk_phy_mod")
-SET(CPACK_PACKAGE_FILE_NAME "${CPACK_DEBIAN_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
-SET(CPACK_DEBIAN_PACKAGE_DEPENDS "sklk_phy, sklk_json, sklk_mii")
-SET(CPACK_DEBIAN_PACKAGE_CONFLICTS "sklk_tools")
-
-message(STATUS "make .deb: `make package`")
-INCLUDE(CPack)
 
 ########################################################################
 # SWIG CMake policies
@@ -83,10 +75,8 @@ install(FILES
     DESTINATION ${CMAKE_LIB_DEST})
 
 ########################################################################
-# components
+# ref_design
 ########################################################################
-sklk_feature("sklk-phy-mod tests" SKLK_PHY_MOD_ENABLE_TESTS "Enable sklk-phy-mod tests" ON "" OFF)
-
 function(sklk_phy_mod_mark_mod_library TARGET)
     if (NOT TARGET ${TARGET})
         message(WARNING "${TARGET} is not a target")
@@ -96,18 +86,13 @@ function(sklk_phy_mod_mark_mod_library TARGET)
     set_target_properties(${TARGET} PROPERTIES IS_SKLK_PHY_MOD_LIBRARY YES)
 endfunction()
 
-function(sklk_phy_mod_add_test)
-    cmake_parse_arguments(PARSE_ARGV 0 SKLK_PHY_MOD_ADD_TEST "" "TARGET" "SOURCES;LIBRARIES;ARGS")
-    add_executable(${SKLK_PHY_MOD_ADD_TEST_TARGET} ${SKLK_PHY_MOD_ADD_TEST_SOURCES})
-    target_link_libraries(${SKLK_PHY_MOD_ADD_TEST_TARGET} ${SKLK_PHY_MOD_ADD_TEST_LIBRARIES})
-    add_test(NAME ${SKLK_PHY_MOD_ADD_TEST_TARGET} COMMAND ${SKLK_PHY_MOD_ADD_TEST_TARGET} ${SKLK_PHY_MOD_ADD_TEST_ARGS})
-endfunction(sklk_phy_mod_add_test)
-
 add_subdirectory(ref_design)
 
-if (IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
-    add_subdirectory(tests)
-endif ()
+########################################################################
+# components
+########################################################################
+
+add_subdirectory(tests)
 
 sklk_feature("sklk-phy-mod doxygen documentation" SKLK_PHY_MOD_ENABLE_DOCS
     "Enable sklk-phy-mod doxygen documentation" OFF "" ON)

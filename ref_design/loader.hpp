@@ -1,24 +1,13 @@
-/*
-*   Copyright [2023] [Skylark Wireless LLC]
-*
-*   Licensed under the Apache License, Version 2.0 (the "License");
-*   you may not use this file except in compliance with the License.
-*   You may obtain a copy of the License at
-*
-*       http://www.apache.org/licenses/LICENSE-2.0
-*
-*   Unless required by applicable law or agreed to in writing, software
-*   distributed under the License is distributed on an "AS IS" BASIS,
-*   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*   See the License for the specific language governing permissions and
-*   limitations under the License.
-*/
-
-
 #pragma once
 
-#include "sklkphy/modding.hpp"
+#include "api.hpp"
 
+#include <sklk-mii/message_queue.hpp>
+
+#include <sklkphy/common.hpp>
+#include <sklkphy/modding.hpp>
+
+#include <cstdint>
 #include <map>
 #include <memory>
 
@@ -26,7 +15,7 @@ class ref_design_rpc_handler;
 class ref_design_csi_mod;
 class ref_design_schedule_mod;
 
-class ref_design_mod_loader : public sklk_phy_mod_loader {
+class SKLK_PHY_MOD_REFDESIGN_API ref_design_mod_loader : public sklk_phy_mod_loader {
     static constexpr size_t _max_frame_delay{10};
 
     //! [weight page queue]
@@ -69,7 +58,7 @@ public:
 /**
  * Overloads the base modding factory to create a new factory for a custom loader.
  */
-class ref_design_mod_loader_factory : public sklk_phy_mod_loader_factory {
+class SKLK_PHY_MOD_REFDESIGN_API ref_design_mod_loader_factory : public sklk_phy_mod_loader_factory {
 public:
     ref_design_mod_loader_factory() = default;
     virtual ~ref_design_mod_loader_factory() = default;

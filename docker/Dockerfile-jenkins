@@ -1,8 +1,7 @@
 FROM artifactory.ad.sklk.us/gitlabdocker/skylark-wireless/sklk-master:latest
 
-RUN echo "deb https://artifactory.ad.sklk.us/artifactory/jenkins-sklk-deb focal testing" | sudo tee /etc/apt/sources.list.d/jenkins-sklk-deb.list \
+RUN echo "deb https://artifactory.ad.sklk.us/artifactory/sklk-debian focal main" | sudo tee /etc/apt/sources.list.d/skylark-wireless.list \
     && curl https://artifactory.ad.sklk.us/artifactory/api/security/keypair/sklk-debian-keys/public | sudo apt-key add - \
-    && sudo apt update -y \
     && sudo apt dist-upgrade -y \
     && sudo apt install -y -qq cmake g++ autoconf automake nlohmann-json3-dev libyaml-cpp-dev libzmq3-dev libarmadillo-dev libhdf5-dev \
     libboost-program-options-dev libboost-filesystem-dev \

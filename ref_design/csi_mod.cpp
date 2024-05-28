@@ -1,26 +1,12 @@
-/*
-*   Copyright [2023] [Skylark Wireless LLC]
-*
-*   Licensed under the Apache License, Version 2.0 (the "License");
-*   you may not use this file except in compliance with the License.
-*   You may obtain a copy of the License at
-*
-*       http://www.apache.org/licenses/LICENSE-2.0
-*
-*   Unless required by applicable law or agreed to in writing, software
-*   distributed under the License is distributed on an "AS IS" BASIS,
-*   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*   See the License for the specific language governing permissions and
-*   limitations under the License.
-*/
-
 #include "csi_mod.hpp"
 #include "loader.hpp"
 #include "utils.hpp"
 
-#include "sklkphy/weights.hpp"
+#include <sklkphy/weights.hpp>
 
-#include <sklk-mii/logger.hpp>
+#include <sklk-mii/simple_log.hpp>
+
+#include <sklk-dsp/utils.hpp>
 
 #define ARMA_MAT_PREALLOC (SKLK_PHY_MAX_RADIOS*SKLK_PHY_MAX_MIMO_USERS)
 #include <armadillo>
@@ -254,7 +240,7 @@ void ref_design_csi_mod::_scale_pages_for_downlink(
             float dnl_power{};
             for (size_t ch = 0; ch < num_radios; ch++) {
                 const auto &d_w = page.get_symbol(ch, userno, sbno);
-                dnl_power += mag2(d_w);
+                dnl_power += sklk_dsp_mag2(d_w);
             }
             const float scale = 1.0f/ std::sqrt(dnl_power);
             for (size_t ch = 0; ch < num_radios; ch++) {
@@ -267,7 +253,7 @@ void ref_design_csi_mod::_scale_pages_for_downlink(
         for (size_t ch = 0; ch < num_radios; ch++){
             for (size_t userno = 0; userno < num_users; userno++) {
                 const auto &w = page.get_symbol(ch, userno, sbno);
-                max_power = std::max(max_power, mag2(w));
+                max_power = std::max(max_power, sklk_dsp_mag2(w));
             }
         }
 
@@ -296,7 +282,7 @@ void ref_design_csi_mod::_scale_pages_for_uplink(
             for (size_t ch = 0; ch < num_radios; ch++)
             {
                 auto &w = page.get_symbol(ch, userno, sbno);
-                max_power = std::max(max_power, mag2(w));
+                max_power = std::max(max_power, sklk_dsp_mag2(w));
             }
 
             const float scale = amplitude_ceiling / 1.0;

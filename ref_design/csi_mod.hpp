@@ -1,32 +1,18 @@
-/*
-*   Copyright [2023] [Skylark Wireless LLC]
-*
-*   Licensed under the Apache License, Version 2.0 (the "License");
-*   you may not use this file except in compliance with the License.
-*   You may obtain a copy of the License at
-*
-*       http://www.apache.org/licenses/LICENSE-2.0
-*
-*   Unless required by applicable law or agreed to in writing, software
-*   distributed under the License is distributed on an "AS IS" BASIS,
-*   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*   See the License for the specific language governing permissions and
-*   limitations under the License.
-*/
-
-
 #pragma once
 
-#include "sklkphy/modding.hpp"
-#include "sklkphy/mimo_rrh_scheduler.hpp"
-#include "sklkphy/common.hpp"
+#include "api.hpp"
 
+#include <sklkphy/common.hpp>
+#include <sklkphy/mimo_rrh_scheduler.hpp>
+#include <sklkphy/modding.hpp>
+
+#include <array>
 #include <random>
 
 extern const std::string ref_design_csi_mod_name;
 class ref_design_mod_loader;
 
-class ref_design_csi_estimation
+class SKLK_PHY_MOD_REFDESIGN_API ref_design_csi_estimation
 {
     sklk_phy_csi_vec _data{};
     bool _valid{false};
@@ -50,13 +36,13 @@ public:
     }
 };
 
-class ref_design_csi_radio_container : public sklk_phy_mod_container
+class SKLK_PHY_MOD_REFDESIGN_API ref_design_csi_radio_container : public sklk_phy_mod_container
 {
 public:
     std::array<ref_design_csi_estimations, SKLK_PHY_MAX_BANDS> csi{};
 };
 
-class ref_design_csi_mod : public sklk_phy_modding
+class SKLK_PHY_MOD_REFDESIGN_API ref_design_csi_mod : public sklk_phy_modding
 {
     bool _initialized{false};
     ref_design_mod_loader *_loader;

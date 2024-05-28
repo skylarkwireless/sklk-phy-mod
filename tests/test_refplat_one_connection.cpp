@@ -1,6 +1,8 @@
 #include "refplat_test.hpp"
 
-bool test_fixture::test(sklk_phy_refplat &refplat)
+#include <sklk-mii/simple_log.hpp>
+
+void RefplatTest::test(sklk_phy_refplat &refplat)
 {
     refplat.run_one();
 
@@ -10,7 +12,8 @@ bool test_fixture::test(sklk_phy_refplat &refplat)
 
     for (size_t i = 0; i < pilots_files.size(); ++i)
     {
-        auto pilots = read_pilots_from_file(_pilots_dir / pilots_files[i]);
+        pilot_test_vec_t pilots;
+        read_pilots_from_file(_pilots_dir / pilots_files[i], pilots);
         cpe.load_pilots(refplat, pilots[0], i);
     }
 
@@ -44,7 +47,7 @@ bool test_fixture::test(sklk_phy_refplat &refplat)
         }
     );
 
-    sklk_mii_notice("Reconnecting...");
+    sklk_mii_log::notice("Reconnecting...");
     cpe.connect(refplat);
 
     for (int i = 0; i < 500; ++i)
@@ -59,6 +62,4 @@ bool test_fixture::test(sklk_phy_refplat &refplat)
             {"num_conns", 2},
         }
     );
-
-    return true;
 }
